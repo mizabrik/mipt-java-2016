@@ -71,9 +71,9 @@ class ShuntingYardCalculator implements Calculator {
 
     // Get result of expression coded by consequence of tokens.
     private double evaluate(ArrayList<Token> infix) throws ParsingException {
-        Stack<Token> operators = new Stack<>();
+        Stack<Operator> operators = new Stack<>(); // null is used as opening bracket
         Stack<Double> numbers = new Stack<>();
-        operators.push(new BracketToken('('));
+        operators.push(null);
         infix.add(new BracketToken(')'));
         int bracketBalance = 1;
         boolean gotOperand = false;
@@ -95,33 +95,33 @@ class ShuntingYardCalculator implements Calculator {
                         default:
                             throw new ParsingException("Illegal expression");
                     }
-                    token = new OperatorToken(operator);
                 }
                 gotOperand = false;
-                while (operators.size() > 0 && operators.peek() instanceof OperatorToken) {
-                    Operator previousOperator = ((OperatorToken) operators.peek()).getOperator();
+                while (operators.size() > 0 && operators.peek() != null) {
+                    Operator previousOperator = operators.peek();
                     if (previousOperator.priority < operator.priority
-                            || (operator.hasLeftAssociativity && previousOperator.priority == operator.priority)) {
+                            || (operator.hasLeftAssociativity
+                            && previousOperator.priority == operator.priority)) {
                         previousOperator.apply(numbers);
                         operators.pop();
                     } else {
                         break;
                     }
                 }
-                operators.push(token);
+                operators.push(operator);
             } else {
                 Bracket bracket = ((BracketToken) token).getType();
                 switch (bracket) {
                     case OPENING:
-                        operators.push(token);
+                        operators.push(null);
                         gotOperand = false;
                         ++bracketBalance;
                         break;
                     case CLOSING:
                         if (bracketBalance == 0)
                             throw new ParsingException("Bad bracket balance");
-                        while (operators.peek() instanceof OperatorToken) {
-                            ((OperatorToken) operators.pop()).getOperator().apply(numbers);
+                        while (operators.peek() != null) {
+                            operators.pop().apply(numbers);
                         }
                         operators.pop();
                         --bracketBalance;
